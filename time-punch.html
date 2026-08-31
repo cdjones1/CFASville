@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Time Punch Adjustment — Team Forms</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="brand">
+      <span class="store">CHICK-FIL-A · STEPHENVILLE, TX</span>
+      <span class="site-title">Team Forms</span>
+    </div>
+    <nav class="header-nav">
+      <a href="submissions.html">View submissions</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <a class="back-link" href="index.html">← All forms</a>
+
+  <div id="formView">
+    <div class="form-head">
+      <span class="ticket-no" id="ticketNoDisplay">TP-···</span>
+      <h1>Time Punch Adjustment</h1>
+      <p>Use this when a clock-in or clock-out is missing or wrong on your timecard.</p>
+    </div>
+
+    <form id="tpForm" novalidate>
+      <div class="field" id="f-name">
+        <label for="empName">Your name</label>
+        <input type="text" id="empName" name="empName">
+        <div class="error-text">Enter your name.</div>
+      </div>
+
+      <div class="field-row">
+        <div class="field" id="f-date">
+          <label for="shiftDate">Date of the shift</label>
+          <input type="date" id="shiftDate" name="shiftDate">
+          <div class="error-text">Pick the shift date.</div>
+        </div>
+        <div class="field" id="f-manager">
+          <label for="managerName">Manager on that shift</label>
+          <input type="text" id="managerName" name="managerName">
+          <div class="error-text">Enter the manager's name.</div>
+        </div>
+      </div>
+
+      <div class="field" id="f-issue">
+        <label>What's wrong with the punch?</label>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="issueType" value="Missed clock-in"> Missed clock-in</label>
+          <label class="radio-option"><input type="radio" name="issueType" value="Missed clock-out"> Missed clock-out</label>
+          <label class="radio-option"><input type="radio" name="issueType" value="Wrong time recorded"> Wrong time recorded</label>
+          <label class="radio-option"><input type="radio" name="issueType" value="Missed break punch"> Missed break punch</label>
+        </div>
+        <div class="error-text">Pick one.</div>
+      </div>
+
+      <div class="field" id="f-correct">
+        <label for="correctTime">Correct time <span class="hint">(what it should say)</span></label>
+        <input type="text" id="correctTime" name="correctTime" placeholder="e.g. 2:15 PM">
+        <div class="error-text">Enter the correct time.</div>
+      </div>
+
+      <div class="field" id="f-reason">
+        <label for="reason">What happened <span class="hint">(a sentence or two)</span></label>
+        <textarea id="reason" name="reason" placeholder="e.g. Forgot to clock out for lunch break"></textarea>
+        <div class="error-text">Give a short explanation.</div>
+      </div>
+
+      <button type="submit" class="submit-btn">Submit adjustment</button>
+    </form>
+  </div>
+
+  <div class="confirm-screen" id="confirmView">
+    <div class="stamp">PUNCHED IN</div>
+    <h2>Adjustment submitted</h2>
+    <p>Your time punch adjustment is on record. Your manager can review it on the submissions page.</p>
+    <p class="confirm-ticket-no">Ticket <span id="confirmTicketNo"></span> · <span id="confirmTime"></span></p>
+    <p><a class="back-link" href="index.html">← Back to all forms</a></p>
+  </div>
+</main>
+
+<script src="app.js"></script>
+<script>
+  const ticketNo = generateTicketNo("TP");
+  document.getElementById("ticketNoDisplay").textContent = ticketNo;
+
+  const form = document.getElementById("tpForm");
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    const empName = document.getElementById("empName");
+    const shiftDate = document.getElementById("shiftDate");
+    const managerName = document.getElementById("managerName");
+    const correctTime = document.getElementById("correctTime");
+    const reason = document.getElementById("reason");
+    const issueChecked = form.querySelector('input[name="issueType"]:checked');
+
+    const checks = [
+      { el: empName, valid: empName.value.trim().length > 0 },
+      { el: shiftDate, valid: shiftDate.value.trim().length > 0 },
+      { el: managerName, valid: managerName.value.trim().length > 0 },
+      { el: correctTime, valid: correctTime.value.trim().length > 0 },
+      { el: reason, valid: reason.value.trim().length > 0 },
+      { el: form.querySelector('input[name="issueType"]'), valid: !!issueChecked },
+    ];
+
+    if (!validateRequired(checks)) return;
+
+    const record = saveSubmission("time-punch", {
+      ticketNo,
+      empName: empName.value.trim(),
+      shiftDate: shiftDate.value,
+      managerName: managerName.value.trim(),
+      issueType: issueChecked.value,
+      correctTime: correctTime.value.trim(),
+      reason: reason.value.trim(),
+    });
+
+    document.getElementById("formView").style.display = "none";
+    document.getElementById("confirmTicketNo").textContent = record.ticketNo;
+    document.getElementById("confirmTime").textContent = formatDate(record.submittedAt);
+    document.getElementById("confirmView").classList.add("show");
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Submissions — Team Forms</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="brand">
+      <span class="store">CHICK-FIL-A · STEPHENVILLE, TX</span>
+      <span class="site-title">Team Forms</span>
+    </div>
+    <nav class="header-nav">
+      <a href="index.html">All forms</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="hero" style="padding-bottom: 0;">
+    <h1 style="font-size: 30px;">Submissions</h1>
+  </div>
+
+  <p class="storage-note">
+    These submissions are stored in this browser only — they won't show up on a different phone, tablet, or computer.
+    Export each form's data to CSV regularly and drop it into a shared spreadsheet so nothing gets stranded on one device.
+  </p>
+
+  <section class="sub-section">
+    <h2>Time Punch Adjustments <button class="export-btn" data-form="time-punch" data-name="time-punch-adjustments.csv">Export CSV</button></h2>
+    <div id="table-time-punch"></div>
+  </section>
+
+  <section class="sub-section">
+    <h2>Uniform Orders <button class="export-btn" data-form="uniform-order" data-name="uniform-orders.csv">Export CSV</button></h2>
+    <div id="table-uniform-order"></div>
+  </section>
+
+  <section class="sub-section">
+    <h2>Mileage Reimbursements <button class="export-btn" data-form="mileage" data-name="mileage-reimbursements.csv">Export CSV</button></h2>
+    <div id="table-mileage"></div>
+  </section>
+
+  <div class="danger-zone">
+    <button id="clearAllBtn">Clear all submissions on this device</button>
+  </div>
+</main>
+
+<script src="app.js"></script>
+<script>
+
+function renderTimePunch() {
+  const rows = getSubmissionsByType("time-punch");
+  const container = document.getElementById("table-time-punch");
+  if (rows.length === 0) {
+    container.innerHTML = '<div class="empty-state">No time punch adjustments submitted yet.</div>';
+    return;
+  }
+  const cols = [
+    { label: "Ticket", get: r => r.fields.ticketNo },
+    { label: "Employee", get: r => r.fields.empName },
+    { label: "Shift date", get: r => r.fields.shiftDate },
+    { label: "Issue", get: r => r.fields.issueType },
+    { label: "Correct time", get: r => r.fields.correctTime },
+    { label: "Reason", get: r => r.fields.reason },
+    { label: "Manager", get: r => r.fields.managerName },
+    { label: "Submitted", get: r => formatDate(r.submittedAt) },
+  ];
+  renderTable(container, rows, cols);
+}
+
+function renderUniform() {
+  const rows = getSubmissionsByType("uniform-order");
+  const container = document.getElementById("table-uniform-order");
+  if (rows.length === 0) {
+    container.innerHTML = '<div class="empty-state">No uniform orders submitted yet.</div>';
+    return;
+  }
+  const cols = [
+    { label: "Ticket", get: r => r.fields.ticketNo },
+    { label: "Employee", get: r => r.fields.empName },
+    { label: "Item", get: r => r.fields.item },
+    { label: "Size", get: r => r.fields.size },
+    { label: "Qty", get: r => r.fields.qty },
+    { label: "Reason", get: r => r.fields.reason },
+    { label: "Signature", get: r => "" }, // rendered specially below
+    { label: "Submitted", get: r => formatDate(r.submittedAt) },
+  ];
+  renderTable(container, rows, cols, true);
+}
+
+function renderMileage() {
+  const rows = getSubmissionsByType("mileage");
+  const container = document.getElementById("table-mileage");
+  if (rows.length === 0) {
+    container.innerHTML = '<div class="empty-state">No mileage submitted yet.</div>';
+    return;
+  }
+  const cols = [
+    { label: "Ticket", get: r => r.fields.ticketNo },
+    { label: "Employee", get: r => r.fields.empName },
+    { label: "Trip date", get: r => r.fields.tripDate },
+    { label: "Purpose", get: r => r.fields.purpose },
+    { label: "From", get: r => r.fields.fromLoc },
+    { label: "To", get: r => r.fields.toLoc },
+    { label: "Miles", get: r => r.fields.miles },
+    { label: "Rate", get: r => "$" + r.fields.rate },
+    { label: "Total", get: r => "$" + r.fields.total },
+    { label: "Submitted", get: r => formatDate(r.submittedAt) },
+  ];
+  renderTable(container, rows, cols);
+}
+
+function renderTable(container, rows, cols, withSignature) {
+  const table = document.createElement("table");
+  table.className = "sub-table";
+  const thead = document.createElement("thead");
+  thead.innerHTML = "<tr>" + cols.map(c => `<th>${c.label}</th>`).join("") + "</tr>";
+  table.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+  rows.slice().reverse().forEach(r => {
+    const tr = document.createElement("tr");
+    cols.forEach(c => {
+      const td = document.createElement("td");
+      if (withSignature && c.label === "Signature" && r.fields.signature) {
+        const img = document.createElement("img");
+        img.src = r.fields.signature;
+        img.alt = "Signature";
+        img.style.height = "28px";
+        td.appendChild(img);
+      } else {
+        td.textContent = c.get(r);
+      }
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  container.innerHTML = "";
+  container.appendChild(table);
+}
+
+function refreshAll() {
+  renderTimePunch();
+  renderUniform();
+  renderMileage();
+}
+refreshAll();
+
+document.querySelectorAll(".export-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const formType = btn.dataset.form;
+    const filename = btn.dataset.name;
+    const rows = getSubmissionsByType(formType);
+    if (rows.length === 0) return;
+
+    let cols;
+    if (formType === "time-punch") {
+      cols = [
+        { label: "Ticket", get: r => r.fields.ticketNo },
+        { label: "Employee", get: r => r.fields.empName },
+        { label: "Shift date", get: r => r.fields.shiftDate },
+        { label: "Issue", get: r => r.fields.issueType },
+        { label: "Correct time", get: r => r.fields.correctTime },
+        { label: "Reason", get: r => r.fields.reason },
+        { label: "Manager", get: r => r.fields.managerName },
+        { label: "Submitted", get: r => r.submittedAt },
+      ];
+    } else if (formType === "uniform-order") {
+      cols = [
+        { label: "Ticket", get: r => r.fields.ticketNo },
+        { label: "Employee", get: r => r.fields.empName },
+        { label: "Item", get: r => r.fields.item },
+        { label: "Size", get: r => r.fields.size },
+        { label: "Qty", get: r => r.fields.qty },
+        { label: "Reason", get: r => r.fields.reason },
+        { label: "Signed", get: r => (r.fields.signature ? "Yes" : "No") },
+        { label: "Submitted", get: r => r.submittedAt },
+      ];
+    } else {
+      cols = [
+        { label: "Ticket", get: r => r.fields.ticketNo },
+        { label: "Employee", get: r => r.fields.empName },
+        { label: "Trip date", get: r => r.fields.tripDate },
+        { label: "Purpose", get: r => r.fields.purpose },
+        { label: "From", get: r => r.fields.fromLoc },
+        { label: "To", get: r => r.fields.toLoc },
+        { label: "Miles", get: r => r.fields.miles },
+        { label: "Rate", get: r => r.fields.rate },
+        { label: "Total", get: r => r.fields.total },
+        { label: "Submitted", get: r => r.submittedAt },
+      ];
+    }
+
+    downloadCSV(filename, toCSV(rows, cols));
+  });
+});
+
+document.getElementById("clearAllBtn").addEventListener("click", () => {
+  if (confirm("This deletes every submission stored on this device. This can't be undone. Continue?")) {
+    localStorage.removeItem(STORAGE_KEY);
+    refreshAll();
+  }
+});
+</script>
+
+</body>
+</html>

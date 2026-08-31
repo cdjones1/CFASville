@@ -1,0 +1,494 @@
+/* Stephenville Chick-fil-A — Team Forms
+   Visual language: order ticket / punch-slip, quick-service back-of-house */
+
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+:root{
+  --cream: #FBF6EF;
+  --paper: #FFFFFF;
+  --ink: #241C18;
+  --ink-soft: #5B5049;
+  --red: #C8102E;
+  --red-dark: #8F0B21;
+  --gold: #E8A33D;
+  --line: #E3D6C2;
+  --line-strong: #D8C9B0;
+  --ok-green: #2F7A4E;
+
+  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+*{ box-sizing: border-box; }
+
+html{ -webkit-text-size-adjust: 100%; }
+
+body{
+  margin: 0;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+a{ color: inherit; }
+
+.wrap{
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ---------- Header ---------- */
+
+.site-header{
+  border-bottom: 3px solid var(--ink);
+  background: var(--paper);
+}
+
+.site-header .wrap{
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-top: 22px;
+  padding-bottom: 22px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.brand{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.brand .store{
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+  color: var(--red);
+  font-weight: 600;
+}
+
+.brand .site-title{
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+}
+
+.header-nav a{
+  font-size: 14.5px;
+  text-decoration: none;
+  color: var(--ink-soft);
+  border-bottom: 1px solid transparent;
+}
+.header-nav a:hover{ color: var(--ink); border-bottom-color: var(--ink); }
+
+/* ---------- Hero ---------- */
+
+.hero{
+  padding: 56px 0 40px;
+}
+
+.hero h1{
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(32px, 5vw, 46px);
+  line-height: 1.08;
+  margin: 0 0 16px;
+  max-width: 14ch;
+}
+
+.hero p{
+  font-size: 17px;
+  color: var(--ink-soft);
+  max-width: 46ch;
+  margin: 0;
+}
+
+/* ---------- Ticket rail (hub cards) ---------- */
+
+.ticket-rail{
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 64px;
+}
+
+.ticket{
+  position: relative;
+  background: var(--paper);
+  border: 1.5px solid var(--ink);
+  padding: 26px 28px;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  text-decoration: none;
+  color: var(--ink);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ticket + .ticket{
+  margin-top: 18px;
+}
+
+.ticket:hover{
+  transform: translateX(4px);
+  box-shadow: -4px 4px 0 var(--gold);
+}
+
+.ticket:focus-visible{
+  outline: 3px solid var(--red);
+  outline-offset: 2px;
+}
+
+/* perforated notch on the left edge, like a torn ticket stub */
+.ticket::before, .ticket::after{
+  content: "";
+  position: absolute;
+  left: -10px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--cream);
+  border: 1.5px solid var(--ink);
+}
+.ticket::before{ top: -11px; }
+.ticket::after{ bottom: -11px; }
+
+.ticket-no{
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--red);
+  border: 1.5px dashed var(--red);
+  padding: 8px 10px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ticket-body{ flex: 1; min-width: 0; }
+
+.ticket-body h2{
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.ticket-body p{
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 14.5px;
+}
+
+.ticket-arrow{
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--ink);
+  flex-shrink: 0;
+}
+
+/* ---------- Form pages ---------- */
+
+.back-link{
+  display: inline-block;
+  margin: 28px 0 0;
+  font-size: 14.5px;
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+.back-link:hover{ color: var(--ink); }
+
+.form-head{
+  padding: 20px 0 30px;
+  border-bottom: 3px dashed var(--line-strong);
+  margin-bottom: 32px;
+}
+
+.form-head .ticket-no{
+  margin-bottom: 14px;
+  display: inline-block;
+}
+
+.form-head h1{
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 30px;
+  margin: 0 0 8px;
+}
+
+.form-head p{
+  color: var(--ink-soft);
+  margin: 0;
+  max-width: 50ch;
+}
+
+form{ padding-bottom: 72px; }
+
+.field{
+  margin-bottom: 22px;
+}
+
+.field label{
+  display: block;
+  font-weight: 600;
+  font-size: 14.5px;
+  margin-bottom: 7px;
+}
+
+.field .hint{
+  font-weight: 400;
+  color: var(--ink-soft);
+  font-size: 13px;
+  margin-left: 6px;
+}
+
+.field input[type="text"],
+.field input[type="date"],
+.field input[type="number"],
+.field input[type="tel"],
+.field select,
+.field textarea{
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+  font-family: var(--font-body);
+  font-size: 15.5px;
+  color: var(--ink);
+  border-radius: 3px;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus{
+  outline: 3px solid var(--gold);
+  outline-offset: 0;
+}
+
+.field textarea{ min-height: 96px; resize: vertical; }
+
+.field-row{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+@media (max-width: 560px){
+  .field-row{ grid-template-columns: 1fr; }
+}
+
+.radio-group{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.radio-option{
+  border: 1.5px solid var(--ink);
+  border-radius: 3px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 14.5px;
+  background: var(--paper);
+}
+.radio-option input{ margin-right: 8px; }
+.radio-option:has(input:checked){
+  background: var(--red);
+  color: var(--paper);
+  border-color: var(--red);
+}
+
+.total-box{
+  background: var(--paper);
+  border: 1.5px solid var(--ink);
+  padding: 18px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 26px;
+}
+.total-box .label{ font-size: 14.5px; color: var(--ink-soft); }
+.total-box .amount{
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.sig-pad-wrap{
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+  padding: 4px;
+}
+canvas#sigPad{
+  width: 100%;
+  height: 160px;
+  display: block;
+  cursor: crosshair;
+  touch-action: none;
+  background:
+    repeating-linear-gradient(to bottom, transparent 0 39px, var(--line) 39px 40px);
+}
+.sig-actions{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+.sig-actions button{
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  font-size: 13.5px;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 4px 0;
+}
+.sig-required-note{
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.submit-btn{
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  background: var(--red);
+  color: var(--paper);
+  border: none;
+  padding: 15px 28px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+.submit-btn:hover{ background: var(--red-dark); }
+.submit-btn:disabled{ background: var(--ink-soft); cursor: not-allowed; }
+
+.error-text{
+  color: var(--red);
+  font-size: 13px;
+  margin-top: 6px;
+  display: none;
+}
+.field.invalid input,
+.field.invalid select,
+.field.invalid textarea{ border-color: var(--red); }
+.field.invalid .error-text{ display: block; }
+
+/* ---------- Confirmation stamp ---------- */
+
+.confirm-screen{
+  display: none;
+  padding: 60px 0 100px;
+  text-align: left;
+}
+.confirm-screen.show{ display: block; }
+
+.stamp{
+  display: inline-block;
+  border: 4px solid var(--ok-green);
+  color: var(--ok-green);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+  padding: 10px 20px;
+  transform: rotate(-3deg);
+  margin-bottom: 22px;
+}
+
+.confirm-screen h2{
+  font-family: var(--font-display);
+  font-size: 24px;
+  margin: 0 0 10px;
+}
+
+.confirm-screen p{ color: var(--ink-soft); max-width: 50ch; }
+
+.confirm-ticket-no{
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-top: 4px;
+}
+
+/* ---------- Submissions (manager view) ---------- */
+
+.storage-note{
+  background: var(--paper);
+  border: 1.5px dashed var(--line-strong);
+  padding: 16px 18px;
+  font-size: 14px;
+  color: var(--ink-soft);
+  margin-bottom: 32px;
+}
+
+.sub-section{ margin-bottom: 44px; }
+
+.sub-section h2{
+  font-family: var(--font-display);
+  font-size: 19px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 10px;
+}
+
+.sub-section .export-btn{
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  background: none;
+  border: 1.5px solid var(--ink);
+  padding: 6px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.sub-section .export-btn:hover{ background: var(--ink); color: var(--paper); }
+
+table.sub-table{
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  margin-top: 14px;
+}
+table.sub-table th, table.sub-table td{
+  text-align: left;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+table.sub-table th{
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--ink-soft);
+  font-size: 11.5px;
+}
+
+.empty-state{
+  color: var(--ink-soft);
+  font-size: 14px;
+  padding: 18px 0;
+}
+
+.danger-zone{
+  border-top: 3px solid var(--ink);
+  padding: 28px 0 60px;
+  margin-top: 20px;
+}
+.danger-zone button{
+  font-size: 13.5px;
+  color: var(--red);
+  background: none;
+  border: 1.5px solid var(--red);
+  padding: 8px 14px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.danger-zone button:hover{ background: var(--red); color: var(--paper); }
+
+.site-footer{
+  text-align: left;
+  padding: 24px 0 50px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}

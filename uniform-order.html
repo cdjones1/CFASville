@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Uniform Order — Team Forms</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="brand">
+      <span class="store">CHICK-FIL-A · STEPHENVILLE, TX</span>
+      <span class="site-title">Team Forms</span>
+    </div>
+    <nav class="header-nav">
+      <a href="submissions.html">View submissions</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <a class="back-link" href="index.html">← All forms</a>
+
+  <div id="formView">
+    <div class="form-head">
+      <span class="ticket-no" id="ticketNoDisplay">UF-···</span>
+      <h1>Uniform Order</h1>
+      <p>Order a replacement or new-hire uniform piece. A manager signature confirms the order before it's placed.</p>
+    </div>
+
+    <form id="ufForm" novalidate>
+      <div class="field" id="f-name">
+        <label for="empName">Your name</label>
+        <input type="text" id="empName" name="empName">
+        <div class="error-text">Enter your name.</div>
+      </div>
+
+      <div class="field-row">
+        <div class="field" id="f-item">
+          <label for="item">Item</label>
+          <select id="item" name="item">
+            <option value="">Select an item</option>
+            <option>Shirt</option>
+            <option>Apron</option>
+            <option>Hat</option>
+            <option>Name tag</option>
+            <option>Pants</option>
+            <option>Non-slip shoes</option>
+          </select>
+          <div class="error-text">Pick an item.</div>
+        </div>
+        <div class="field" id="f-size">
+          <label for="size">Size</label>
+          <select id="size" name="size">
+            <option value="">Select a size</option>
+            <option>XS</option><option>S</option><option>M</option>
+            <option>L</option><option>XL</option><option>XXL</option>
+            <option>N/A</option>
+          </select>
+          <div class="error-text">Pick a size.</div>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field" id="f-qty">
+          <label for="qty">Quantity</label>
+          <input type="number" id="qty" name="qty" min="1" value="1">
+          <div class="error-text">Enter a quantity of 1 or more.</div>
+        </div>
+        <div class="field" id="f-why">
+          <label for="reasonSelect">Reason</label>
+          <select id="reasonSelect" name="reasonSelect">
+            <option value="">Select a reason</option>
+            <option>New hire</option>
+            <option>Damaged / worn out</option>
+            <option>Wrong size received</option>
+            <option>Lost</option>
+          </select>
+          <div class="error-text">Pick a reason.</div>
+        </div>
+      </div>
+
+      <div class="field" id="f-sig">
+        <label>Manager signature <span class="hint">required to place the order</span></label>
+        <div class="sig-pad-wrap">
+          <canvas id="sigPad"></canvas>
+        </div>
+        <div class="sig-actions">
+          <span class="sig-required-note">Manager signs to confirm this order.</span>
+          <button type="button" id="clearSig">Clear signature</button>
+        </div>
+        <div class="error-text">A manager signature is required.</div>
+      </div>
+
+      <button type="submit" class="submit-btn">Submit order</button>
+    </form>
+  </div>
+
+  <div class="confirm-screen" id="confirmView">
+    <div class="stamp">ORDER SENT</div>
+    <h2>Uniform order submitted</h2>
+    <p>Your order is on record with the manager's signature attached.</p>
+    <p class="confirm-ticket-no">Ticket <span id="confirmTicketNo"></span> · <span id="confirmTime"></span></p>
+    <p><a class="back-link" href="index.html">← Back to all forms</a></p>
+  </div>
+</main>
+
+<script src="app.js"></script>
+<script>
+  const ticketNo = generateTicketNo("UF");
+  document.getElementById("ticketNoDisplay").textContent = ticketNo;
+
+  const sigPad = initSignaturePad(document.getElementById("sigPad"));
+  document.getElementById("clearSig").addEventListener("click", () => sigPad.clear());
+
+  const form = document.getElementById("ufForm");
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    const empName = document.getElementById("empName");
+    const item = document.getElementById("item");
+    const size = document.getElementById("size");
+    const qty = document.getElementById("qty");
+    const reasonSelect = document.getElementById("reasonSelect");
+
+    const checks = [
+      { el: empName, valid: empName.value.trim().length > 0 },
+      { el: item, valid: item.value.trim().length > 0 },
+      { el: size, valid: size.value.trim().length > 0 },
+      { el: qty, valid: Number(qty.value) >= 1 },
+      { el: reasonSelect, valid: reasonSelect.value.trim().length > 0 },
+      { el: document.getElementById("sigPad"), valid: !sigPad.isEmpty() },
+    ];
+
+    if (!validateRequired(checks)) return;
+
+    const record = saveSubmission("uniform-order", {
+      ticketNo,
+      empName: empName.value.trim(),
+      item: item.value,
+      size: size.value,
+      qty: qty.value,
+      reason: reasonSelect.value,
+      signature: sigPad.toDataURL(),
+    });
+
+    document.getElementById("formView").style.display = "none";
+    document.getElementById("confirmTicketNo").textContent = record.ticketNo;
+    document.getElementById("confirmTime").textContent = formatDate(record.submittedAt);
+    document.getElementById("confirmView").classList.add("show");
+  });
+</script>
+
+</body>
+</html>
