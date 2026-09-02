@@ -90,6 +90,7 @@
     <h2>Mileage submitted</h2>
     <p>Your mileage is on record for reimbursement.</p>
     <p class="confirm-ticket-no">Ticket <span id="confirmTicketNo"></span> · <span id="confirmTime"></span></p>
+    <p class="storage-note" id="confirmFallbackNote" style="display:none;">Couldn't reach the shared spreadsheet, so this was saved on this device only. It'll need to be re-entered once you're back online, or synced manually — check with a manager.</p>
     <p><a class="back-link" href="index.html">← Back to all forms</a></p>
   </div>
 </main>
@@ -112,7 +113,7 @@
   rateInput.addEventListener("input", updateTotal);
 
   const form = document.getElementById("miForm");
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const empName = document.getElementById("empName");
@@ -133,10 +134,14 @@
 
     if (!validateRequired(checks)) return;
 
+    const submitBtn = form.querySelector(".submit-btn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Submitting…";
+
     const miles = parseFloat(milesInput.value);
     const rate = parseFloat(rateInput.value);
 
-    const record = saveSubmission("mileage", {
+    const fields = {
       ticketNo,
       empName: empName.value.trim(),
       tripDate: tripDate.value,
@@ -146,11 +151,16 @@
       miles: miles.toFixed(1),
       rate: rate.toFixed(2),
       total: (miles * rate).toFixed(2),
-    });
+    };
+
+    const result = await submitToSheetOrFallback("mileage", fields);
 
     document.getElementById("formView").style.display = "none";
-    document.getElementById("confirmTicketNo").textContent = record.ticketNo;
-    document.getElementById("confirmTime").textContent = formatDate(record.submittedAt);
+    document.getElementById("confirmTicketNo").textContent = ticketNo;
+    document.getElementById("confirmTime").textContent = formatDate(new Date().toISOString());
+    if (!result.ok) {
+      document.getElementById("confirmFallbackNote").style.display = "block";
+    }
     document.getElementById("confirmView").classList.add("show");
   });
 </script>

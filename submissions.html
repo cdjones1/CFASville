@@ -25,116 +25,117 @@
     <h1 style="font-size: 30px;">Submissions</h1>
   </div>
 
-  <p class="storage-note">
-    These submissions are stored in this browser only — they won't show up on a different phone, tablet, or computer.
-    Export each form's data to CSV regularly and drop it into a shared spreadsheet so nothing gets stranded on one device.
-  </p>
-
-  <section class="sub-section">
-    <h2>Time Punch Adjustments <button class="export-btn" data-form="time-punch" data-name="time-punch-adjustments.csv">Export CSV</button></h2>
-    <div id="table-time-punch"></div>
-  </section>
-
-  <section class="sub-section">
-    <h2>Uniform Orders <button class="export-btn" data-form="uniform-order" data-name="uniform-orders.csv">Export CSV</button></h2>
-    <div id="table-uniform-order"></div>
-  </section>
-
-  <section class="sub-section">
-    <h2>Mileage Reimbursements <button class="export-btn" data-form="mileage" data-name="mileage-reimbursements.csv">Export CSV</button></h2>
-    <div id="table-mileage"></div>
-  </section>
-
-  <div class="danger-zone">
-    <button id="clearAllBtn">Clear all submissions on this device</button>
+  <div id="notConfiguredNote" class="storage-note" style="display:none;">
+    The shared spreadsheet isn't connected yet — <code>SCRIPT_URL</code> in <code>app.js</code> is still a placeholder.
+    Follow SETUP.md to deploy the Apps Script and paste the URL and secret in, then this page will pull live from the sheet.
+    Until then, submissions are only saved on the device that filled out the form — see below.
   </div>
+
+  <div id="loadErrorNote" class="storage-note" style="display:none; border-color: var(--red); color: var(--red);"></div>
+
+  <div id="loadingNote" class="storage-note">Loading submissions from the shared spreadsheet…</div>
+
+  <div id="remoteContent" style="display:none;">
+    <p class="storage-note">
+      Pulled live from the shared spreadsheet. <button class="export-btn" id="refreshBtn" style="margin-left: 6px;">Refresh</button>
+    </p>
+
+    <section class="sub-section">
+      <h2>Time Punch Adjustments <button class="export-btn" data-form="time-punch" data-name="time-punch-adjustments.csv">Export CSV</button></h2>
+      <div id="table-time-punch"></div>
+    </section>
+
+    <section class="sub-section">
+      <h2>Uniform Orders <button class="export-btn" data-form="uniform-order" data-name="uniform-orders.csv">Export CSV</button></h2>
+      <div id="table-uniform-order"></div>
+    </section>
+
+    <section class="sub-section">
+      <h2>Mileage Reimbursements <button class="export-btn" data-form="mileage" data-name="mileage-reimbursements.csv">Export CSV</button></h2>
+      <div id="table-mileage"></div>
+    </section>
+  </div>
+
+  <section class="sub-section" id="localSection" style="display:none;">
+    <h2>Saved on this device only</h2>
+    <p class="storage-note">
+      These couldn't reach the shared spreadsheet when they were submitted (offline, or the sheet wasn't set up yet).
+      They only exist on this browser — copy them into the sheet by hand, or have the employee resubmit once things are connected.
+    </p>
+    <div id="table-local"></div>
+    <div class="danger-zone">
+      <button id="clearLocalBtn">Clear these device-only submissions</button>
+    </div>
+  </section>
 </main>
 
 <script src="app.js"></script>
 <script>
 
-function renderTimePunch() {
-  const rows = getSubmissionsByType("time-punch");
-  const container = document.getElementById("table-time-punch");
-  if (rows.length === 0) {
-    container.innerHTML = '<div class="empty-state">No time punch adjustments submitted yet.</div>';
+const remoteCols = {
+  "time-punch": [
+    { label: "Ticket", key: "Ticket" },
+    { label: "Employee", key: "Employee" },
+    { label: "Shift date", key: "Shift Date" },
+    { label: "Issue", key: "Issue" },
+    { label: "Correct time", key: "Correct Time" },
+    { label: "Reason", key: "Reason" },
+    { label: "Manager", key: "Manager" },
+    { label: "Submitted", key: "Timestamp" },
+  ],
+  "uniform-order": [
+    { label: "Ticket", key: "Ticket" },
+    { label: "Employee", key: "Employee" },
+    { label: "Item", key: "Item" },
+    { label: "Size", key: "Size" },
+    { label: "Qty", key: "Qty" },
+    { label: "Reason", key: "Reason" },
+    { label: "Signature", key: "Signature URL", isLink: true },
+    { label: "Submitted", key: "Timestamp" },
+  ],
+  "mileage": [
+    { label: "Ticket", key: "Ticket" },
+    { label: "Employee", key: "Employee" },
+    { label: "Trip date", key: "Trip Date" },
+    { label: "Purpose", key: "Purpose" },
+    { label: "From", key: "From" },
+    { label: "To", key: "To" },
+    { label: "Miles", key: "Miles" },
+    { label: "Rate", key: "Rate" },
+    { label: "Total", key: "Total" },
+    { label: "Submitted", key: "Timestamp" },
+  ],
+};
+
+let latestRemoteData = null;
+
+function renderRemoteTable(formType, rows) {
+  const container = document.getElementById("table-" + formType);
+  const cols = remoteCols[formType];
+  if (!rows || rows.length === 0) {
+    container.innerHTML = '<div class="empty-state">No submissions yet.</div>';
     return;
   }
-  const cols = [
-    { label: "Ticket", get: r => r.fields.ticketNo },
-    { label: "Employee", get: r => r.fields.empName },
-    { label: "Shift date", get: r => r.fields.shiftDate },
-    { label: "Issue", get: r => r.fields.issueType },
-    { label: "Correct time", get: r => r.fields.correctTime },
-    { label: "Reason", get: r => r.fields.reason },
-    { label: "Manager", get: r => r.fields.managerName },
-    { label: "Submitted", get: r => formatDate(r.submittedAt) },
-  ];
-  renderTable(container, rows, cols);
-}
-
-function renderUniform() {
-  const rows = getSubmissionsByType("uniform-order");
-  const container = document.getElementById("table-uniform-order");
-  if (rows.length === 0) {
-    container.innerHTML = '<div class="empty-state">No uniform orders submitted yet.</div>';
-    return;
-  }
-  const cols = [
-    { label: "Ticket", get: r => r.fields.ticketNo },
-    { label: "Employee", get: r => r.fields.empName },
-    { label: "Item", get: r => r.fields.item },
-    { label: "Size", get: r => r.fields.size },
-    { label: "Qty", get: r => r.fields.qty },
-    { label: "Reason", get: r => r.fields.reason },
-    { label: "Signature", get: r => "" }, // rendered specially below
-    { label: "Submitted", get: r => formatDate(r.submittedAt) },
-  ];
-  renderTable(container, rows, cols, true);
-}
-
-function renderMileage() {
-  const rows = getSubmissionsByType("mileage");
-  const container = document.getElementById("table-mileage");
-  if (rows.length === 0) {
-    container.innerHTML = '<div class="empty-state">No mileage submitted yet.</div>';
-    return;
-  }
-  const cols = [
-    { label: "Ticket", get: r => r.fields.ticketNo },
-    { label: "Employee", get: r => r.fields.empName },
-    { label: "Trip date", get: r => r.fields.tripDate },
-    { label: "Purpose", get: r => r.fields.purpose },
-    { label: "From", get: r => r.fields.fromLoc },
-    { label: "To", get: r => r.fields.toLoc },
-    { label: "Miles", get: r => r.fields.miles },
-    { label: "Rate", get: r => "$" + r.fields.rate },
-    { label: "Total", get: r => "$" + r.fields.total },
-    { label: "Submitted", get: r => formatDate(r.submittedAt) },
-  ];
-  renderTable(container, rows, cols);
-}
-
-function renderTable(container, rows, cols, withSignature) {
   const table = document.createElement("table");
   table.className = "sub-table";
   const thead = document.createElement("thead");
   thead.innerHTML = "<tr>" + cols.map(c => `<th>${c.label}</th>`).join("") + "</tr>";
   table.appendChild(thead);
-
   const tbody = document.createElement("tbody");
-  rows.slice().reverse().forEach(r => {
+  rows.slice().reverse().forEach(row => {
     const tr = document.createElement("tr");
     cols.forEach(c => {
       const td = document.createElement("td");
-      if (withSignature && c.label === "Signature" && r.fields.signature) {
-        const img = document.createElement("img");
-        img.src = r.fields.signature;
-        img.alt = "Signature";
-        img.style.height = "28px";
-        td.appendChild(img);
+      const val = row[c.key];
+      if (c.isLink && val) {
+        const a = document.createElement("a");
+        a.href = val;
+        a.textContent = "View signature";
+        a.target = "_blank";
+        a.rel = "noopener";
+        td.appendChild(a);
       } else {
-        td.textContent = c.get(r);
+        td.textContent = val === undefined || val === null ? "" : val;
       }
       tr.appendChild(td);
     });
@@ -145,66 +146,82 @@ function renderTable(container, rows, cols, withSignature) {
   container.appendChild(table);
 }
 
-function refreshAll() {
-  renderTimePunch();
-  renderUniform();
-  renderMileage();
-}
-refreshAll();
+async function loadRemote() {
+  document.getElementById("loadingNote").style.display = "block";
+  document.getElementById("loadErrorNote").style.display = "none";
+  document.getElementById("remoteContent").style.display = "none";
 
-document.querySelectorAll(".export-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    const formType = btn.dataset.form;
-    const filename = btn.dataset.name;
-    const rows = getSubmissionsByType(formType);
-    if (rows.length === 0) return;
+  const result = await fetchAllFromSheet();
 
-    let cols;
-    if (formType === "time-punch") {
-      cols = [
-        { label: "Ticket", get: r => r.fields.ticketNo },
-        { label: "Employee", get: r => r.fields.empName },
-        { label: "Shift date", get: r => r.fields.shiftDate },
-        { label: "Issue", get: r => r.fields.issueType },
-        { label: "Correct time", get: r => r.fields.correctTime },
-        { label: "Reason", get: r => r.fields.reason },
-        { label: "Manager", get: r => r.fields.managerName },
-        { label: "Submitted", get: r => r.submittedAt },
-      ];
-    } else if (formType === "uniform-order") {
-      cols = [
-        { label: "Ticket", get: r => r.fields.ticketNo },
-        { label: "Employee", get: r => r.fields.empName },
-        { label: "Item", get: r => r.fields.item },
-        { label: "Size", get: r => r.fields.size },
-        { label: "Qty", get: r => r.fields.qty },
-        { label: "Reason", get: r => r.fields.reason },
-        { label: "Signed", get: r => (r.fields.signature ? "Yes" : "No") },
-        { label: "Submitted", get: r => r.submittedAt },
-      ];
-    } else {
-      cols = [
-        { label: "Ticket", get: r => r.fields.ticketNo },
-        { label: "Employee", get: r => r.fields.empName },
-        { label: "Trip date", get: r => r.fields.tripDate },
-        { label: "Purpose", get: r => r.fields.purpose },
-        { label: "From", get: r => r.fields.fromLoc },
-        { label: "To", get: r => r.fields.toLoc },
-        { label: "Miles", get: r => r.fields.miles },
-        { label: "Rate", get: r => r.fields.rate },
-        { label: "Total", get: r => r.fields.total },
-        { label: "Submitted", get: r => r.submittedAt },
-      ];
+  document.getElementById("loadingNote").style.display = "none";
+
+  if (!result.ok) {
+    if (result.reason === "network") {
+      document.getElementById("loadErrorNote").textContent =
+        "Couldn't load the shared spreadsheet right now. Check your connection or try Refresh.";
+      document.getElementById("loadErrorNote").style.display = "block";
     }
+    return;
+  }
 
-    downloadCSV(filename, toCSV(rows, cols));
+  latestRemoteData = result.data;
+  document.getElementById("remoteContent").style.display = "block";
+  Object.keys(remoteCols).forEach(formType => {
+    renderRemoteTable(formType, result.data[formType] || []);
+  });
+}
+
+function renderLocalFallback() {
+  const local = readAllSubmissions();
+  const section = document.getElementById("localSection");
+  if (local.length === 0) {
+    section.style.display = "none";
+    return;
+  }
+  section.style.display = "block";
+  const container = document.getElementById("table-local");
+  const table = document.createElement("table");
+  table.className = "sub-table";
+  table.innerHTML = "<thead><tr><th>Form</th><th>Ticket</th><th>Employee</th><th>Submitted</th></tr></thead>";
+  const tbody = document.createElement("tbody");
+  local.slice().reverse().forEach(r => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${FORM_LABELS[r.formType] || r.formType}</td><td>${r.fields.ticketNo || ""}</td><td>${r.fields.empName || ""}</td><td>${formatDate(r.submittedAt)}</td>`;
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  container.innerHTML = "";
+  container.appendChild(table);
+}
+
+function toCSVFromRemote(formType) {
+  const rows = (latestRemoteData && latestRemoteData[formType]) || [];
+  const cols = remoteCols[formType];
+  return toCSV(rows, cols.map(c => ({ label: c.label, get: (r) => r[c.key] })));
+}
+
+if (!isRemoteConfigured()) {
+  document.getElementById("notConfiguredNote").style.display = "block";
+  document.getElementById("loadingNote").style.display = "none";
+} else {
+  loadRemote();
+}
+renderLocalFallback();
+
+document.getElementById("refreshBtn")?.addEventListener("click", loadRemote);
+
+document.querySelectorAll(".export-btn[data-form]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    if (!latestRemoteData) return;
+    const csv = toCSVFromRemote(btn.dataset.form);
+    downloadCSV(btn.dataset.name, csv);
   });
 });
 
-document.getElementById("clearAllBtn").addEventListener("click", () => {
-  if (confirm("This deletes every submission stored on this device. This can't be undone. Continue?")) {
+document.getElementById("clearLocalBtn")?.addEventListener("click", () => {
+  if (confirm("This deletes the device-only submissions listed above. This can't be undone. Continue?")) {
     localStorage.removeItem(STORAGE_KEY);
-    refreshAll();
+    renderLocalFallback();
   }
 });
 </script>

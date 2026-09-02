@@ -10,6 +10,54 @@ const FORM_LABELS = {
   "mileage": "Mileage Reimbursement",
 };
 
+/* ---------- Shared spreadsheet backend ----------
+   Fill these in after you deploy the Apps Script (see google-apps-script/Code.gs
+   and SETUP.md). Until SCRIPT_URL is set, every submission just falls back to
+   this browser's local storage. */
+const SCRIPT_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+const SHARED_SECRET = "PASTE_THE_SAME_SECRET_YOU_PUT_IN_CODE.GS_HERE";
+
+function isRemoteConfigured() {
+  return SCRIPT_URL && SCRIPT_URL.startsWith("http");
+}
+
+/* Tries to save the submission to the shared Google Sheet. Falls back to
+   local storage (this device only) if the sheet is unreachable or not
+   set up yet, so a submission is never silently lost. */
+async function submitToSheetOrFallback(formType, fields) {
+  if (!isRemoteConfigured()) {
+    saveSubmission(formType, fields);
+    return { ok: false, reason: "not-configured" };
+  }
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ secret: SHARED_SECRET, formType, fields }),
+    });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error || "Unknown error from sheet");
+    return { ok: true };
+  } catch (err) {
+    console.error("Could not reach the shared spreadsheet:", err);
+    saveSubmission(formType, fields);
+    return { ok: false, reason: "network", error: err };
+  }
+}
+
+async function fetchAllFromSheet() {
+  if (!isRemoteConfigured()) return { ok: false, reason: "not-configured" };
+  try {
+    const res = await fetch(SCRIPT_URL + "?secret=" + encodeURIComponent(SHARED_SECRET));
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error || "Unknown error from sheet");
+    return { ok: true, data: json.data };
+  } catch (err) {
+    console.error("Could not load submissions from the shared spreadsheet:", err);
+    return { ok: false, reason: "network", error: err };
+  }
+}
+
 function readAllSubmissions() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);

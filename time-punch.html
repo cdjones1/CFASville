@@ -82,6 +82,7 @@
     <h2>Adjustment submitted</h2>
     <p>Your time punch adjustment is on record. Your manager can review it on the submissions page.</p>
     <p class="confirm-ticket-no">Ticket <span id="confirmTicketNo"></span> · <span id="confirmTime"></span></p>
+    <p class="storage-note" id="confirmFallbackNote" style="display:none;">Couldn't reach the shared spreadsheet, so this was saved on this device only. It'll need to be re-entered once you're back online, or synced manually — check with a manager.</p>
     <p><a class="back-link" href="index.html">← Back to all forms</a></p>
   </div>
 </main>
@@ -92,7 +93,7 @@
   document.getElementById("ticketNoDisplay").textContent = ticketNo;
 
   const form = document.getElementById("tpForm");
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const empName = document.getElementById("empName");
@@ -113,7 +114,11 @@
 
     if (!validateRequired(checks)) return;
 
-    const record = saveSubmission("time-punch", {
+    const submitBtn = form.querySelector(".submit-btn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Submitting…";
+
+    const fields = {
       ticketNo,
       empName: empName.value.trim(),
       shiftDate: shiftDate.value,
@@ -121,11 +126,16 @@
       issueType: issueChecked.value,
       correctTime: correctTime.value.trim(),
       reason: reason.value.trim(),
-    });
+    };
+
+    const result = await submitToSheetOrFallback("time-punch", fields);
 
     document.getElementById("formView").style.display = "none";
-    document.getElementById("confirmTicketNo").textContent = record.ticketNo;
-    document.getElementById("confirmTime").textContent = formatDate(record.submittedAt);
+    document.getElementById("confirmTicketNo").textContent = ticketNo;
+    document.getElementById("confirmTime").textContent = formatDate(new Date().toISOString());
+    if (!result.ok) {
+      document.getElementById("confirmFallbackNote").style.display = "block";
+    }
     document.getElementById("confirmView").classList.add("show");
   });
 </script>
