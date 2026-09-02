@@ -15,7 +15,7 @@ const FORM_LABELS = {
    and SETUP.md). Until SCRIPT_URL is set, every submission just falls back to
    this browser's local storage. */
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxeioKHWY7uJgZwjhiBCMAhQTEv-_tMpGghIBekBoOTXGeNnh1ES0aXY-0pc9zajmsL/exec";
-const SHARED_SECRET = "stephemville-cfa-9f2k1";
+const SHARED_SECRET = "stephenville-cfa-9f2k1";
 
 function isRemoteConfigured() {
   return SCRIPT_URL && SCRIPT_URL.startsWith("http");
