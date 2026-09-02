@@ -27,7 +27,7 @@
     <div class="form-head">
       <span class="ticket-no" id="ticketNoDisplay">UF-···</span>
       <h1>Uniform Order</h1>
-      <p>Order a replacement or new-hire uniform piece. A manager signature confirms the order before it's placed.</p>
+      <p>Order a replacement or new-hire uniform piece. A team member signature confirms they acknowledge they will be charged for their order.</p>
     </div>
 
     <form id="ufForm" novalidate>
@@ -52,17 +52,12 @@
           <div class="error-text">Pick an item.</div>
         </div>
         <div class="field" id="f-size">
-          <label for="size">Size</label>
-          <select id="size" name="size">
-            <option value="">Select a size</option>
-            <option>XS</option><option>S</option><option>M</option>
-            <option>L</option><option>XL</option><option>XXL</option>
-            <option>N/A</option>
-          </select>
-          <div class="error-text">Pick a size.</div>
-        </div>
-      </div>
-
+         <div class="field" id="f-size">
+  <label for="size">Pick a size/style of shoe</label>
+  <input type="text" id="size" name="size" placeholder="e.g., 10 / Running">
+  <div class="error-text">Pick a size/style of shoe.</div>
+</div>
+          
       <div class="field-row">
         <div class="field" id="f-qty">
           <label for="qty">Quantity</label>
@@ -83,7 +78,7 @@
       </div>
 
       <div class="field" id="f-sig">
-        <label>Manager signature <span class="hint">required to place the order</span></label>
+        <label>Team member signature <span class="hint">required to place the order</span></label>
         <div class="sig-pad-wrap">
           <canvas id="sigPad"></canvas>
         </div>
@@ -91,7 +86,7 @@
           <span class="sig-required-note">Manager signs to confirm this order.</span>
           <button type="button" id="clearSig">Clear signature</button>
         </div>
-        <div class="error-text">A manager signature is required.</div>
+        <div class="error-text">Your signature is required.</div>
       </div>
 
       <button type="submit" class="submit-btn">Submit order</button>
