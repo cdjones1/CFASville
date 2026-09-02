@@ -14,8 +14,8 @@ const FORM_LABELS = {
    Fill these in after you deploy the Apps Script (see google-apps-script/Code.gs
    and SETUP.md). Until SCRIPT_URL is set, every submission just falls back to
    this browser's local storage. */
-const SCRIPT_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
-const SHARED_SECRET = "PASTE_THE_SAME_SECRET_YOU_PUT_IN_CODE.GS_HERE";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxeioKHWY7uJgZwjhiBCMAhQTEv-_tMpGghIBekBoOTXGeNnh1ES0aXY-0pc9zajmsL/exec";
+const SHARED_SECRET = "stephemville-cfa-9f2k1";
 
 function isRemoteConfigured() {
   return SCRIPT_URL && SCRIPT_URL.startsWith("http");
