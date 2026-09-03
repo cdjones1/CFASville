@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Submissions — Team Forms</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="brand">
+      <span class="store">CHICK-FIL-A · STEPHENVILLE, TX</span>
+      <span class="site-title">Team Forms</span>
+    </div>
+    <nav class="header-nav">
+      <a href="index.html">All forms</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="hero" style="padding-bottom: 0;">
+    <h1 style="font-size: 30px;">Submissions</h1>
+  </div>
+
+  <div id="loginGate" style="display:none;">
+    <p class="storage-note">
+      Submissions are only visible to people with the manager password. Enter it below to view them.
+    </p>
+    <form id="loginForm" style="max-width: 360px;">
+      <div class="field" id="f-pw">
+        <label for="adminPw">Manager password</label>
+        <input type="text" id="adminPw" name="adminPw" autocomplete="off">
+        <div class="error-text">Enter the password.</div>
+      </div>
+      <button type="submit" class="submit-btn">View submissions</button>
+      <p id="loginErrorNote" style="display:none; color: var(--red); font-size: 14px; margin-top: 10px;">
+        That password didn't work. Check with whoever set up the site.
+      </p>
+    </form>
+  </div>
+
+  <div id="notConfiguredNote" class="storage-note" style="display:none;">
+    The shared spreadsheet isn't connected yet — <code>SCRIPT_URL</code> in <code>app.js</code> is still a placeholder.
+    Follow SETUP.md to deploy the Apps Script and paste the URL and secret in, then this page will pull live from the sheet.
+    Until then, submissions are only saved on the device that filled out the form — see below.
+  </div>
+
+  <div id="loadErrorNote" class="storage-note" style="display:none; border-color: var(--red); color: var(--red);"></div>
+
+  <div id="loadingNote" class="storage-note" style="display:none;">Loading submissions from the shared spreadsheet…</div>
+
+  <div id="remoteContent" style="display:none;">
+    <p class="storage-note">
+      Pulled live from the shared spreadsheet.
+      <button class="export-btn" id="refreshBtn" style="margin-left: 6px;">Refresh</button>
+      <button class="export-btn" id="logoutBtn" style="margin-left: 6px;">Log out</button>
+    </p>
+
+    <section class="sub-section">
+      <h2>Time Punch Adjustments <button class="export-btn" data-form="time-punch" data-name="time-punch-adjustments.csv">Export CSV</button></h2>
+      <div id="table-time-punch"></div>
+    </section>
+
+    <section class="sub-section">
+      <h2>Uniform Orders <button class="export-btn" data-form="uniform-order" data-name="uniform-orders.csv">Export CSV</button></h2>
+      <div id="table-uniform-order"></div>
+    </section>
+
+    <section class="sub-section">
+      <h2>Mileage Reimbursements <button class="export-btn" data-form="mileage" data-name="mileage-reimbursements.csv">Export CSV</button></h2>
+      <div id="table-mileage"></div>
+    </section>
+  </div>
+
+  <section class="sub-section" id="localSection" style="display:none;">
+    <h2>Saved on this device only</h2>
+    <p class="storage-note">
+      These couldn't reach the shared spreadsheet when they were submitted (offline, or the sheet wasn't set up yet).
+      They only exist on this browser — copy them into the sheet by hand, or have the employee resubmit once things are connected.
+    </p>
+    <div id="table-local"></div>
+    <div class="danger-zone">
+      <button id="clearLocalBtn">Clear these device-only submissions</button>
+    </div>
+  </section>
+</main>
+
+<script src="app.js"></script>
+<script>
+
+const remoteCols = {
+  "time-punch": [
+    { label: "Ticket", key: "Ticket" },
+    { label: "Employee", key: "Employee" },
+    { label: "Shift date", key: "Shift Date" },
+    { label: "Issue", key: "Issue" },
+    { label: "Correct time", key: "Correct Time" },
+    { label: "Reason", key: "Reason" },
+    { label: "Manager", key: "Manager" },
+    { label: "Submitted", key: "Timestamp" },
+  ],
+  "uniform-order": [
+    { label: "Ticket", key: "Ticket" },
+    { label: "Employee", key: "Employee" },
+    { label: "Item", key: "Item" },
+    { label: "Size", key: "Size" },
+    { label: "Qty", key: "Qty" },
+    { label: "Reason", key: "Reason" },
+    { label: "Signature", key: "Signature URL", isLink: true },
+    { label: "Submitted", key: "Timestamp" },
+  ],
+  "mileage": [
+    { label: "Ticket", key: "Ticket" },
+    { label: "Employee", key: "Employee" },
+    { label: "Trip date", key: "Trip Date" },
+    { label: "Purpose", key: "Purpose" },
+    { label: "From", key: "From" },
+    { label: "To", key: "To" },
+    { label: "Miles", key: "Miles" },
+    { label: "Rate", key: "Rate" },
+    { label: "Total", key: "Total" },
+    { label: "Submitted", key: "Timestamp" },
+  ],
+};
+
+let latestRemoteData = null;
+
+function showDashboard() {
+  document.getElementById("loginGate").style.display = "none";
+  document.getElementById("localSection").style.display = "block";
+  renderLocalFallback();
+  loadRemote();
+}
+
+function initGate() {
+  if (!isRemoteConfigured()) {
+    // Nothing to check a password against yet — skip the gate during setup.
+    document.getElementById("loginGate").style.display = "none";
+    document.getElementById("notConfiguredNote").style.display = "block";
+    renderLocalFallback();
+    return;
+  }
+
+  const stored = getStoredAdminPassword();
+  if (stored) {
+    showDashboard();
+  } else {
+    document.getElementById("loginGate").style.display = "block";
+  }
+}
+
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const pwInput = document.getElementById("adminPw");
+  const pw = pwInput.value.trim();
+  document.getElementById("f-pw").classList.remove("invalid");
+  document.getElementById("loginErrorNote").style.display = "none";
+
+  if (!pw) {
+    document.getElementById("f-pw").classList.add("invalid");
+    return;
+  }
+
+  const submitBtn = e.target.querySelector(".submit-btn");
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Checking…";
+
+  const result = await fetchAllFromSheet(pw);
+
+  submitBtn.disabled = false;
+  submitBtn.textContent = "View submissions";
+
+  if (result.ok) {
+    storeAdminPassword(pw);
+    latestRemoteData = result.data;
+    showDashboard();
+  } else if (result.reason === "network") {
+    document.getElementById("loadErrorNote").textContent =
+      "Couldn't reach the shared spreadsheet right now. Check your connection and try again.";
+    document.getElementById("loadErrorNote").style.display = "block";
+  } else {
+    document.getElementById("loginErrorNote").style.display = "block";
+  }
+});
+
+document.getElementById("logoutBtn")?.addEventListener("click", () => {
+  clearAdminPassword();
+  document.getElementById("remoteContent").style.display = "none";
+  document.getElementById("localSection").style.display = "none";
+  document.getElementById("adminPw").value = "";
+  document.getElementById("loginGate").style.display = "block";
+});
+
+function renderRemoteTable(formType, rows) {
+  const container = document.getElementById("table-" + formType);
+  const cols = remoteCols[formType];
+  if (!rows || rows.length === 0) {
+    container.innerHTML = '<div class="empty-state">No submissions yet.</div>';
+    return;
+  }
+  const table = document.createElement("table");
+  table.className = "sub-table";
+  const thead = document.createElement("thead");
+  thead.innerHTML = "<tr>" + cols.map(c => `<th>${c.label}</th>`).join("") + "</tr>";
+  table.appendChild(thead);
+  const tbody = document.createElement("tbody");
+  rows.slice().reverse().forEach(row => {
+    const tr = document.createElement("tr");
+    cols.forEach(c => {
+      const td = document.createElement("td");
+      const val = row[c.key];
+      if (c.isLink && val) {
+        const a = document.createElement("a");
+        a.href = val;
+        a.textContent = "View signature";
+        a.target = "_blank";
+        a.rel = "noopener";
+        td.appendChild(a);
+      } else {
+        td.textContent = val === undefined || val === null ? "" : val;
+      }
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  container.innerHTML = "";
+  container.appendChild(table);
+}
+
+async function loadRemote() {
+  document.getElementById("loadingNote").style.display = "block";
+  document.getElementById("loadErrorNote").style.display = "none";
+  document.getElementById("remoteContent").style.display = "none";
+
+  const result = await fetchAllFromSheet(getStoredAdminPassword());
+
+  document.getElementById("loadingNote").style.display = "none";
+
+  if (!result.ok) {
+    if (result.reason === "network") {
+      document.getElementById("loadErrorNote").textContent =
+        "Couldn't load the shared spreadsheet right now. Check your connection or try Refresh.";
+      document.getElementById("loadErrorNote").style.display = "block";
+    } else {
+      // Password was accepted once this session but the sheet is now rejecting it
+      // (e.g. it was changed on the backend) — send them back to the login gate.
+      clearAdminPassword();
+      document.getElementById("remoteContent").style.display = "none";
+      document.getElementById("loginGate").style.display = "block";
+    }
+    return;
+  }
+
+  latestRemoteData = result.data;
+  document.getElementById("remoteContent").style.display = "block";
+  Object.keys(remoteCols).forEach(formType => {
+    renderRemoteTable(formType, result.data[formType] || []);
+  });
+}
+
+function renderLocalFallback() {
+  const local = readAllSubmissions();
+  const section = document.getElementById("localSection");
+  if (local.length === 0) {
+    section.style.display = "none";
+    return;
+  }
+  section.style.display = "block";
+  const container = document.getElementById("table-local");
+  const table = document.createElement("table");
+  table.className = "sub-table";
+  table.innerHTML = "<thead><tr><th>Form</th><th>Ticket</th><th>Employee</th><th>Submitted</th></tr></thead>";
+  const tbody = document.createElement("tbody");
+  local.slice().reverse().forEach(r => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${FORM_LABELS[r.formType] || r.formType}</td><td>${r.fields.ticketNo || ""}</td><td>${r.fields.empName || ""}</td><td>${formatDate(r.submittedAt)}</td>`;
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  container.innerHTML = "";
+  container.appendChild(table);
+}
+
+function toCSVFromRemote(formType) {
+  const rows = (latestRemoteData && latestRemoteData[formType]) || [];
+  const cols = remoteCols[formType];
+  return toCSV(rows, cols.map(c => ({ label: c.label, get: (r) => r[c.key] })));
+}
+
+initGate();
+
+document.getElementById("refreshBtn")?.addEventListener("click", loadRemote);
+
+document.querySelectorAll(".export-btn[data-form]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    if (!latestRemoteData) return;
+    const csv = toCSVFromRemote(btn.dataset.form);
+    downloadCSV(btn.dataset.name, csv);
+  });
+});
+
+document.getElementById("clearLocalBtn")?.addEventListener("click", () => {
+  if (confirm("This deletes the device-only submissions listed above. This can't be undone. Continue?")) {
+    localStorage.removeItem(STORAGE_KEY);
+    renderLocalFallback();
+  }
+});
+</script>
+
+</body>
+</html>
