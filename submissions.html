@@ -25,6 +25,23 @@
     <h1 style="font-size: 30px;">Submissions</h1>
   </div>
 
+  <div id="loginGate" style="display:none;">
+    <p class="storage-note">
+      Submissions are only visible to people with the manager password. Enter it below to view them.
+    </p>
+    <form id="loginForm" style="max-width: 360px;">
+      <div class="field" id="f-pw">
+        <label for="adminPw">Manager password</label>
+        <input type="text" id="adminPw" name="adminPw" autocomplete="off">
+        <div class="error-text">Enter the password.</div>
+      </div>
+      <button type="submit" class="submit-btn">View submissions</button>
+      <p id="loginErrorNote" style="display:none; color: var(--red); font-size: 14px; margin-top: 10px;">
+        That password didn't work. Check with whoever set up the site.
+      </p>
+    </form>
+  </div>
+
   <div id="notConfiguredNote" class="storage-note" style="display:none;">
     The shared spreadsheet isn't connected yet — <code>SCRIPT_URL</code> in <code>app.js</code> is still a placeholder.
     Follow SETUP.md to deploy the Apps Script and paste the URL and secret in, then this page will pull live from the sheet.
@@ -33,11 +50,13 @@
 
   <div id="loadErrorNote" class="storage-note" style="display:none; border-color: var(--red); color: var(--red);"></div>
 
-  <div id="loadingNote" class="storage-note">Loading submissions from the shared spreadsheet…</div>
+  <div id="loadingNote" class="storage-note" style="display:none;">Loading submissions from the shared spreadsheet…</div>
 
   <div id="remoteContent" style="display:none;">
     <p class="storage-note">
-      Pulled live from the shared spreadsheet. <button class="export-btn" id="refreshBtn" style="margin-left: 6px;">Refresh</button>
+      Pulled live from the shared spreadsheet.
+      <button class="export-btn" id="refreshBtn" style="margin-left: 6px;">Refresh</button>
+      <button class="export-btn" id="logoutBtn" style="margin-left: 6px;">Log out</button>
     </p>
 
     <section class="sub-section">
@@ -109,6 +128,72 @@ const remoteCols = {
 
 let latestRemoteData = null;
 
+function showDashboard() {
+  document.getElementById("loginGate").style.display = "none";
+  document.getElementById("localSection").style.display = "block";
+  renderLocalFallback();
+  loadRemote();
+}
+
+function initGate() {
+  if (!isRemoteConfigured()) {
+    // Nothing to check a password against yet — skip the gate during setup.
+    document.getElementById("loginGate").style.display = "none";
+    document.getElementById("notConfiguredNote").style.display = "block";
+    renderLocalFallback();
+    return;
+  }
+
+  const stored = getStoredAdminPassword();
+  if (stored) {
+    showDashboard();
+  } else {
+    document.getElementById("loginGate").style.display = "block";
+  }
+}
+
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const pwInput = document.getElementById("adminPw");
+  const pw = pwInput.value.trim();
+  document.getElementById("f-pw").classList.remove("invalid");
+  document.getElementById("loginErrorNote").style.display = "none";
+
+  if (!pw) {
+    document.getElementById("f-pw").classList.add("invalid");
+    return;
+  }
+
+  const submitBtn = e.target.querySelector(".submit-btn");
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Checking…";
+
+  const result = await fetchAllFromSheet(pw);
+
+  submitBtn.disabled = false;
+  submitBtn.textContent = "View submissions";
+
+  if (result.ok) {
+    storeAdminPassword(pw);
+    latestRemoteData = result.data;
+    showDashboard();
+  } else if (result.reason === "network") {
+    document.getElementById("loadErrorNote").textContent =
+      "Couldn't reach the shared spreadsheet right now. Check your connection and try again.";
+    document.getElementById("loadErrorNote").style.display = "block";
+  } else {
+    document.getElementById("loginErrorNote").style.display = "block";
+  }
+});
+
+document.getElementById("logoutBtn")?.addEventListener("click", () => {
+  clearAdminPassword();
+  document.getElementById("remoteContent").style.display = "none";
+  document.getElementById("localSection").style.display = "none";
+  document.getElementById("adminPw").value = "";
+  document.getElementById("loginGate").style.display = "block";
+});
+
 function renderRemoteTable(formType, rows) {
   const container = document.getElementById("table-" + formType);
   const cols = remoteCols[formType];
@@ -151,7 +236,7 @@ async function loadRemote() {
   document.getElementById("loadErrorNote").style.display = "none";
   document.getElementById("remoteContent").style.display = "none";
 
-  const result = await fetchAllFromSheet();
+  const result = await fetchAllFromSheet(getStoredAdminPassword());
 
   document.getElementById("loadingNote").style.display = "none";
 
@@ -160,6 +245,12 @@ async function loadRemote() {
       document.getElementById("loadErrorNote").textContent =
         "Couldn't load the shared spreadsheet right now. Check your connection or try Refresh.";
       document.getElementById("loadErrorNote").style.display = "block";
+    } else {
+      // Password was accepted once this session but the sheet is now rejecting it
+      // (e.g. it was changed on the backend) — send them back to the login gate.
+      clearAdminPassword();
+      document.getElementById("remoteContent").style.display = "none";
+      document.getElementById("loginGate").style.display = "block";
     }
     return;
   }
@@ -200,13 +291,7 @@ function toCSVFromRemote(formType) {
   return toCSV(rows, cols.map(c => ({ label: c.label, get: (r) => r[c.key] })));
 }
 
-if (!isRemoteConfigured()) {
-  document.getElementById("notConfiguredNote").style.display = "block";
-  document.getElementById("loadingNote").style.display = "none";
-} else {
-  loadRemote();
-}
-renderLocalFallback();
+initGate();
 
 document.getElementById("refreshBtn")?.addEventListener("click", loadRemote);
 
