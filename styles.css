@@ -270,6 +270,18 @@ form{ padding-bottom: 72px; }
 
 .field textarea{ min-height: 96px; resize: vertical; }
 
+.field input[type="file"]{
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px dashed var(--line-strong);
+  background: var(--paper);
+  font-family: var(--font-body);
+  font-size: 14.5px;
+  color: var(--ink-soft);
+  border-radius: 3px;
+}
+.field input[type="file"]:focus{ outline: 3px solid var(--gold); }
+
 .field-row{
   display: grid;
   grid-template-columns: 1fr 1fr;

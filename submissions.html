@@ -73,6 +73,15 @@
       <h2>Mileage Reimbursements <button class="export-btn" data-form="mileage" data-name="mileage-reimbursements.csv">Export CSV</button></h2>
       <div id="table-mileage"></div>
     </section>
+
+    <section class="sub-section">
+      <h2>Doctor's Notes <button class="export-btn" data-form="doctor-note" data-name="doctors-notes.csv">Export CSV</button></h2>
+      <p class="storage-note">
+        "View note" links open the file in Google Drive. If it shows an access error, the signed-in Google account
+        needs to be granted access to the Doctor Notes (Restricted) folder — see SETUP.md.
+      </p>
+      <div id="table-doctor-note"></div>
+    </section>
   </div>
 
   <section class="sub-section" id="localSection" style="display:none;">
@@ -109,7 +118,7 @@ const remoteCols = {
     { label: "Size", key: "Size" },
     { label: "Qty", key: "Qty" },
     { label: "Reason", key: "Reason" },
-    { label: "Signature", key: "Signature URL", isLink: true },
+    { label: "Signature", key: "Signature URL", isLink: true, linkLabel: "View signature" },
     { label: "Submitted", key: "Timestamp" },
   ],
   "mileage": [
@@ -122,6 +131,16 @@ const remoteCols = {
     { label: "Miles", key: "Miles" },
     { label: "Rate", key: "Rate" },
     { label: "Total", key: "Total" },
+    { label: "Submitted", key: "Timestamp" },
+  ],
+  "doctor-note": [
+    { label: "Ticket", key: "Ticket" },
+    { label: "Employee", key: "Employee" },
+    { label: "Absence start", key: "Absence Start" },
+    { label: "Absence end", key: "Absence End" },
+    { label: "Reason", key: "Reason" },
+    { label: "Notes", key: "Notes" },
+    { label: "File", key: "File URL", isLink: true, linkLabel: "View note" },
     { label: "Submitted", key: "Timestamp" },
   ],
 };
@@ -215,7 +234,7 @@ function renderRemoteTable(formType, rows) {
       if (c.isLink && val) {
         const a = document.createElement("a");
         a.href = val;
-        a.textContent = "View signature";
+        a.textContent = c.linkLabel || "View file";
         a.target = "_blank";
         a.rel = "noopener";
         td.appendChild(a);

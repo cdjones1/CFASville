@@ -9,22 +9,38 @@
  */
 
 // Change this to any random string of your choosing. Put the exact same
-// string into SHARED_SECRET near the top of app.js.
+// string into SHARED_SECRET near the top of app.js. Used by the forms
+// when they submit — it's embedded in the public site code, so treat it
+// as a light deterrent, not real security.
 const SHARED_SECRET = 'PICK-A-RANDOM-SECRET-AND-PASTE-IT-IN-APP-JS-TOO';
+
+// A SEPARATE password for viewing submissions. This one is NOT stored
+// anywhere in the website's code — the manager types it in on the
+// Submissions page each time, so it's real access control, not just an
+// embedded string anyone could find by viewing source.
+const ADMIN_SECRET = 'PICK-A-DIFFERENT-PASSWORD-FOR-MANAGERS-ONLY';
 
 const SHEET_NAMES = {
   'time-punch': 'TimePunch',
   'uniform-order': 'UniformOrder',
   'mileage': 'Mileage',
+  'doctor-note': 'DoctorsNotes',
 };
 
 const HEADERS = {
   'time-punch': ['Timestamp', 'Ticket', 'Employee', 'Shift Date', 'Issue', 'Correct Time', 'Reason', 'Manager'],
   'uniform-order': ['Timestamp', 'Ticket', 'Employee', 'Item', 'Size', 'Qty', 'Reason', 'Signature URL'],
   'mileage': ['Timestamp', 'Ticket', 'Employee', 'Trip Date', 'Purpose', 'From', 'To', 'Miles', 'Rate', 'Total'],
+  'doctor-note': ['Timestamp', 'Ticket', 'Employee', 'Absence Start', 'Absence End', 'Reason', 'Notes', 'File URL'],
 };
 
 const SIGNATURE_FOLDER_NAME = 'Uniform Order Signatures';
+
+// A separate, more restricted folder for medical documentation. Files
+// here are shared only within your Google Workspace domain (not with
+// "anyone with the link") when a domain is available — see SETUP.md for
+// why this one gets tighter handling than the signature folder.
+const DOCTOR_NOTE_FOLDER_NAME = 'Doctor Notes (Restricted)';
 
 function doPost(e) {
   try {
@@ -49,6 +65,9 @@ function doPost(e) {
       row = [now, f.ticketNo, f.empName, f.item, f.size, f.qty, f.reason, signatureUrl];
     } else if (formType === 'mileage') {
       row = [now, f.ticketNo, f.empName, f.tripDate, f.purpose, f.fromLoc, f.toLoc, f.miles, f.rate, f.total];
+    } else if (formType === 'doctor-note') {
+      const fileUrl = f.noteFile ? saveDoctorNoteFile(f.noteFile, f.ticketNo, f.noteFileName) : '';
+      row = [now, f.ticketNo, f.empName, f.absenceFrom, f.absenceTo, f.reason, f.extraNotes, fileUrl];
     } else {
       throw new Error('Unhandled form type: ' + formType);
     }
@@ -62,8 +81,8 @@ function doPost(e) {
 
 function doGet(e) {
   try {
-    if (!e.parameter || e.parameter.secret !== SHARED_SECRET) {
-      return jsonOutput({ ok: false, error: 'Wrong secret' });
+    if (!e.parameter || e.parameter.secret !== ADMIN_SECRET) {
+      return jsonOutput({ ok: false, error: 'Wrong password' });
     }
 
     const result = {};
@@ -113,6 +132,40 @@ function saveSignatureImage(dataUrl, ticketNo) {
   } catch (err) {
     return 'Error saving signature: ' + String(err);
   }
+}
+
+// Doctor's notes are medical documentation, so these files are kept
+// PRIVATE by default — only the Google account that owns this script can
+// open them. Nothing here makes them link-shareable. See SETUP.md for
+// how to grant specific managers access to the "Doctor Notes (Restricted)"
+// Drive folder deliberately, rather than anyone-with-the-link.
+function saveDoctorNoteFile(dataUrl, ticketNo, originalName) {
+  try {
+    const match = dataUrl.match(/^data:([^;]+);base64,(.*)$/);
+    if (!match) throw new Error('Unexpected file format');
+    const mimeType = match[1];
+    const base64 = match[2];
+    const ext = extensionForMime(mimeType, originalName);
+    const filename = (ticketNo || 'doctor-note') + ext;
+    const blob = Utilities.newBlob(Utilities.base64Decode(base64), mimeType, filename);
+    const folder = getOrCreateFolder(DOCTOR_NOTE_FOLDER_NAME);
+    const file = folder.createFile(blob);
+    // Intentionally no setSharing() call — file stays private to this
+    // Google account until a manager is explicitly granted access.
+    return file.getUrl();
+  } catch (err) {
+    return 'Error saving file: ' + String(err);
+  }
+}
+
+function extensionForMime(mimeType, originalName) {
+  if (originalName && originalName.indexOf('.') !== -1) {
+    return originalName.substring(originalName.lastIndexOf('.'));
+  }
+  if (mimeType === 'application/pdf') return '.pdf';
+  if (mimeType === 'image/png') return '.png';
+  if (mimeType === 'image/jpeg') return '.jpg';
+  return '';
 }
 
 function getOrCreateFolder(name) {

@@ -15,9 +15,14 @@ everything live." No paid hosting, no server to maintain.
 2. Delete the placeholder code in `Code.gs`, and paste in the contents of
    `google-apps-script/Code.gs` from this project.
 3. Near the top, change `SHARED_SECRET` to a random string only you know —
-   e.g. `stephenville-cfa-9f2k1`. Anyone with this string can read or write
-   submissions, so don't post it publicly.
-4. Save the project (the disk icon, or Ctrl/Cmd+S).
+   e.g. `stephenville-cfa-9f2k1`. This is what the forms use to submit, so
+   it lives in the public site code — treat it as a light deterrent, not
+   real security.
+4. Just below it, change `ADMIN_SECRET` to a **different** password —
+   this is the one managers will type in to view the Submissions page.
+   Unlike `SHARED_SECRET`, this one never gets written into the site's
+   code, so it's genuinely harder to find or bypass.
+5. Save the project (the disk icon, or Ctrl/Cmd+S).
 
 ## 3. Deploy it as a Web App
 
@@ -36,11 +41,14 @@ everything live." No paid hosting, no server to maintain.
 
 1. Open `app.js` in the site files.
 2. Set `SCRIPT_URL` to the Web app URL you copied.
-3. Set `SHARED_SECRET` to the exact same string you put in `Code.gs`.
+3. Set `SHARED_SECRET` to the exact same string you put for `SHARED_SECRET`
+   in `Code.gs`. (Do **not** put `ADMIN_SECRET` anywhere in `app.js` —
+   that password only ever gets typed in by hand on the Submissions page.)
 4. Save, and re-upload `app.js` to GitHub (or push the change).
 
-That's it — form submissions now write straight to the Sheet, and
-`submissions.html` reads from it live.
+That's it — form submissions now write straight to the Sheet. Visiting
+`submissions.html` will now ask for the manager password (your
+`ADMIN_SECRET`) before showing anything.
 
 ## If you ever change the script's code later
 
@@ -51,9 +59,31 @@ for changes to take effect.
 ## What lands where
 
 - Each form gets its own tab in the Sheet: `TimePunch`, `UniformOrder`,
-  `Mileage` — created automatically the first time each form is submitted.
+  `Mileage`, `DoctorsNotes` — created automatically the first time each
+  form is submitted.
 - Uniform order signatures are saved as PNG images in a Google Drive folder
   called **Uniform Order Signatures**, and the Sheet gets a link to each one.
 - If a device is offline (or the site hasn't been connected yet), that
   submission is saved only in that browser's local storage, and shows up
   in the "Saved on this device only" section of the Submissions page.
+
+## Doctor's notes are handled more carefully
+
+A doctor's note is medical documentation, so it's treated differently from
+a signature:
+
+- Files land in a separate Drive folder, **Doctor Notes (Restricted)**,
+  created automatically the first time someone submits one.
+- Unlike the signature folder, files here are **not** made link-shareable.
+  They're private to the Google account that owns the Apps Script by
+  default — clicking "View note" on the dashboard will show an access
+  error for anyone else, including a manager, until you explicitly grant
+  them access.
+- To let a manager view them: open Google Drive, find the **Doctor Notes
+  (Restricted)** folder, right-click it, choose **Share**, and add that
+  manager's Google account by email with Viewer access. Only add people
+  who genuinely need to see medical documentation — this isn't something
+  to open up broadly.
+- If you'd rather not use Drive sharing at all, you can instead just rely
+  on the "Reason" and date fields in the sheet for record-keeping, and
+  have the manager review the uploaded file in person on request.
