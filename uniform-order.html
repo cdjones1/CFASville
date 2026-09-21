@@ -27,7 +27,7 @@
     <div class="form-head">
       <span class="ticket-no" id="ticketNoDisplay">UF-···</span>
       <h1>Uniform Order</h1>
-      <p>Order a replacement or new-hire uniform piece. A manager signature confirms the order before it's placed.</p>
+      <p>Order a replacement or new-hire uniform piece. Your signature is required authorizing the payroll deduction.</p>
     </div>
 
     <form id="ufForm" novalidate>
@@ -69,21 +69,8 @@
           <input type="number" id="qty" name="qty" min="1" value="1">
           <div class="error-text">Enter a quantity of 1 or more.</div>
         </div>
-        <div class="field" id="f-why">
-          <label for="reasonSelect">Reason</label>
-          <select id="reasonSelect" name="reasonSelect">
-            <option value="">Select a reason</option>
-            <option>New hire</option>
-            <option>Damaged / worn out</option>
-            <option>Wrong size received</option>
-            <option>Lost</option>
-          </select>
-          <div class="error-text">Pick a reason.</div>
-        </div>
-      </div>
-
       <div class="field" id="f-sig">
-        <label>Manager signature <span class="hint">required to place the order</span></label>
+        <label>Your signature <span class="hint">required to place the order</span></label>
         <div class="sig-pad-wrap">
           <canvas id="sigPad"></canvas>
         </div>
@@ -91,7 +78,7 @@
           <span class="sig-required-note">Manager signs to confirm this order.</span>
           <button type="button" id="clearSig">Clear signature</button>
         </div>
-        <div class="error-text">A manager signature is required.</div>
+        <div class="error-text">Your signature is required.</div>
       </div>
 
       <button type="submit" class="submit-btn">Submit order</button>
@@ -101,7 +88,7 @@
   <div class="confirm-screen" id="confirmView">
     <div class="stamp">ORDER SENT</div>
     <h2>Uniform order submitted</h2>
-    <p>Your order is on record with the manager's signature attached.</p>
+    <p>Your order is on record.</p>
     <p class="confirm-ticket-no">Ticket <span id="confirmTicketNo"></span> · <span id="confirmTime"></span></p>
     <p class="storage-note" id="confirmFallbackNote" style="display:none;">Couldn't reach the shared spreadsheet, so this was saved on this device only. It'll need to be re-entered once you're back online, or synced manually — check with a manager.</p>
     <p><a class="back-link" href="index.html">← Back to all forms</a></p>
